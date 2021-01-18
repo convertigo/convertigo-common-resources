@@ -1,0 +1,8 @@
+{
+  "imports" : [
+    "gradle.json"
+  ],
+  "files": [
+    {"from": "circleci/config.yml", "to": ".circleci/config.yml", "backup": true}
+  ]
+}

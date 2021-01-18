@@ -1,0 +1,10 @@
+{
+  "files": [
+    {"from": "gradle/gradlew", "to": "gradlew"},
+    {"from": "gradle/gradlew.bat", "to": "gradlew.bat"},
+    {"from": "gradle/gradle/wrapper/gradle-wrapper.jar", "to": "gradle/wrapper/gradle-wrapper.jar"},
+    {"from": "gradle/gradle/wrapper/gradle-wrapper.properties", "to": "gradle/wrapper/gradle-wrapper.properties"},
+    {"from": "gradle/build.gradle", "to": "build.gradle", "backup": true},
+    {"from": "gradle/settings.gradle", "to": "settings.gradle", "backup": true}
+  ]
+}

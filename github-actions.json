@@ -1,0 +1,8 @@
+{
+  "imports" : [
+    "gradle.json"
+  ],
+  "files": [
+    {"from": "github-actions/main.yml", "to": ".github/workflows/main.yml", "backup": true}
+  ]
+}

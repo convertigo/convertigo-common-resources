@@ -1,0 +1,19 @@
+version: 2
+jobs:
+  deploy: 
+    docker:
+    - image: circleci/openjdk:11-jdk
+    steps:
+    - checkout
+    - run: |
+        echo "Build C8oStudio and deploy to $C8O_SERVER" && \
+        sh gradlew --no-daemon --stacktrace --info deploy \
+          -Pconvertigo.deploy.server=$C8O_SERVER \
+          -Pconvertigo.deploy.user=$C8O_USER \
+          -Pconvertigo.deploy.password=$C8O_PASSWORD \
+          -Pconvertigo.load.mobileApplicationEndpoint=$C8O_SERVER
+workflows:
+  version: 2
+  convertigo:
+    jobs:
+      - deploy
