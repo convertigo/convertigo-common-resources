@@ -1,19 +1,60 @@
-version: 2
-jobs:
-  deploy: 
-    docker:
-    - image: circleci/openjdk:11-jdk
-    steps:
-    - checkout
-    - run: |
-        echo "Build C8oStudio and deploy to $C8O_SERVER" && \
-        sh gradlew --no-daemon --stacktrace --info deploy \
-          -Pconvertigo.deploy.server=$C8O_SERVER \
-          -Pconvertigo.deploy.user=$C8O_USER \
-          -Pconvertigo.deploy.password=$C8O_PASSWORD \
-          -Pconvertigo.load.mobileApplicationEndpoint=$C8O_SERVER
+# Template configuration for Convertigo project CI build on CircleCI
+# Please consult the CircleCI documentation for details about settings
+# https://circleci.com/docs/2.0/configuration-reference/
+#
+# This sample assumes you have declared the following environment variables
+# https://circleci.com/docs/2.0/env-vars/
+#
+# C8O_SERVER: Convertigo server endpoint, where the built mobile application will connect
+#             and the backend project will be deployed, like https://<myhost>/convertigo
+# C8O_USER: Convertigo server admin or a user with role PROJECTS_CONFIG, used for the deploiment
+# C8O_PASSWORD: Convertigo server password for the C8O_USER
+#
+# Discover all tasks and -Pconvertigo options in your project build.gradle file.
+version: 2.1
 workflows:
   version: 2
   convertigo:
     jobs:
-      - deploy
+      - build:
+          #only performs this build for the 'ci' git branch
+          filters:
+            branches:
+              only:
+                - ci
+jobs:
+  build:
+    docker:
+    - image: cimg/openjdk:11.0
+    steps:
+    - checkout
+    # Download and cache dependencies
+    - restore_cache:
+        keys:
+          - v1-dependencies-{{ checksum "build.gradle" }}
+          # fallback to using the latest cache if no exact match is found
+          - v1-dependencies-
+    - run: gradle dependencies
+    - save_cache:
+        paths:
+          - ~/.gradle
+        key: v1-dependencies-{{ checksum "build.gradle" }}
+    - restore_cache:
+        keys:
+          - v1-convertigo-{{ checksum "build.gradle" }}
+          # fallback to using the latest cache if no exact match is found
+          - v1-convertigo-
+    - run:
+        name: Convertigo Mobile Application build and deploy
+        command: |
+          echo "Build the Mobile Application and deploy to $C8O_SERVER" && \
+          sh gradlew --no-daemon --stacktrace --info deploy \
+            -Pconvertigo.deploy.server=$C8O_SERVER \
+            -Pconvertigo.deploy.user=$C8O_USER \
+            -Pconvertigo.deploy.password=$C8O_PASSWORD \
+            -Pconvertigo.compileMobileBuilder.mode=debug \ # release mode needs to much resources for CircleCI, gradle or template tweak needed
+            -Pconvertigo.load.mobileApplicationEndpoint=$C8O_SERVER 
+    - save_cache:
+        paths:
+          - ~/convertigo
+        key: v1-convertigo-{{ checksum "build.gradle" }}
