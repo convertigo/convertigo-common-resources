@@ -7,7 +7,8 @@ buildscript {
 		jcenter()
 	}
 	dependencies {
-		classpath 'com.convertigo:gradle-plugin:7.9.0'
+		classpath 'org.eclipse.jgit:org.eclipse.jgit.ssh.jsch:[5.8,['
+		classpath 'com.convertigo:gradle-plugin:8.0.0'
 	}
 }
 
@@ -232,4 +233,4 @@ if (!tasks.findByName('wrapper')) {
 		description 'Generates Gradle wrapper files.'
 	}
 }
-wrapper.gradleVersion = '6.7.1'
+wrapper.gradleVersion = '7.3.3'
