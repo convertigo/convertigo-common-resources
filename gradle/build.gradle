@@ -171,7 +171,8 @@ localBuild {
 		dependsOn compileMobileBuilder
 	}
 	
-	//// list platforms to build
+	//// set an array of platforms (Convertigo Platforms object) names to build, empty means all declared platforms
+	//// can also be configured with a -Pconvertigo.localBuild.platforms as Gradle parameter (names separated by comma)
 	// platforms = []
 	
 	//// build mode of the native package, can be 'release' or 'debug' (default)
