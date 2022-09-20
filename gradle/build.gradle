@@ -100,6 +100,7 @@ car {
 }
 
 //// the 'deploy' task depends on 'car' and allows to push the project to a Convertigo server
+//// the task is auto skipped if properties are empties, following tasks can check deploy.state.didWork
 deploy {
 	//// deploy the current project to <server> using user/password credentials
 	//// can also be configured with a -Pconvertigo.deploy.server as Gradle parameter
