@@ -238,4 +238,4 @@ if (!tasks.findByName('wrapper')) {
 		description 'Generates Gradle wrapper files.'
 	}
 }
-wrapper.gradleVersion = '8.3'
+wrapper.gradleVersion = '8.5'
