@@ -1,0 +1,8 @@
+{
+  "imports" : [
+    "gradle.json"
+  ],
+  "files": [
+    {"from": "gitlab/gitlab-ci.yml", "to": ".gitlab-ci.yml", "backup": true}
+  ]
+}

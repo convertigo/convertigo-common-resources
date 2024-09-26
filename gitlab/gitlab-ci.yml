@@ -1,0 +1,58 @@
+# Template configuration for Convertigo project CI build on GitLab Pipelines
+# Please consult the GitLab documentation for details about settings
+# https://docs.gitlab.com/ee/ci/yaml/index.html
+#
+# This sample assumes you have declared the following Variables
+# https://docs.gitlab.com/ee/ci/variables/
+#
+# C8O_SERVER: Convertigo server endpoint, where the built mobile application will connect
+#             and the backend project will be deployed, like https://<myhost>/convertigo
+# C8O_USER: Convertigo server admin or a user with role PROJECTS_CONFIG, used for the deploiment
+# C8O_PASSWORD: Convertigo server password for the C8O_USER
+#
+# Discover all tasks and -Pconvertigo options in your project build.gradle file.
+
+variables:
+  C8O_SERVER: $C8O_SERVER
+  C8O_USER: $C8O_USER
+  C8O_PASSWORD: $C8O_PASSWORD
+  GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
+
+stages:
+  - build
+  - release
+
+cache:
+  key:
+    files:
+      - '**/*.gradle'
+      - '**/gradle/wrapper/gradle-wrapper.properties'
+  paths:
+    - .gradle/caches/
+    - .gradle/wrapper/
+    - _private/ionic/node_modules/
+    - _private/ionic/.angular/
+    - /home/gitlab-runner/convertigo/nodes/
+
+build_app:
+  stage: build
+  image: gradle:jdk17
+  script: |
+    sh ./gradlew --stacktrace --info deploy \
+    -Pconvertigo.load.mobileApplicationEndpoint=$C8O_SERVER \
+    -Pconvertigo.deploy.server=$C8O_SERVER \
+    -Pconvertigo.deploy.user=$C8O_USER \
+    -Pconvertigo.deploy.password=$C8O_PASSWORD
+  artifacts:
+    paths:
+      - build/*.car
+
+release:
+  stage: release
+  only:
+    - tags
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - build_app
+  script:
+    - release-cli create --tag-name "$CI_COMMIT_TAG" --description "Release $CI_COMMIT_TAG" --assets-link "{\"name\":\"Download CAR File\", \"url\":\"${CI_PROJECT_URL}/-/jobs/${CI_JOB_ID}/artifacts/raw/build/*.car\"}"
