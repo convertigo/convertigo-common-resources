@@ -10,16 +10,24 @@
 # C8O_USER: Convertigo server admin or a user with role PROJECTS_CONFIG, used for the deploiment
 # C8O_PASSWORD: Convertigo server password for the C8O_USER
 #
+# C8O_SERVER_PROD: override C8O_SERVER for tags
+# C8O_USER_PROD: override C8O_USER for tags
+# C8O_PASSWORD_PROD: override C8O_PASSWORD for tags
+#
 # Discover all tasks and -Pconvertigo options in your project build.gradle file.
 
 variables:
   C8O_SERVER: $C8O_SERVER
   C8O_USER: $C8O_USER
   C8O_PASSWORD: $C8O_PASSWORD
+  C8O_SERVER_PROD: $C8O_SERVER_PROD
+  C8O_USER_PROD: $C8O_USER_PROD
+  C8O_PASSWORD_PROD: $C8O_PASSWORD_PROD
   GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
 
 stages:
   - build
+  - build_prod
   - release
 
 cache:
@@ -36,6 +44,8 @@ cache:
 
 build_app:
   stage: build
+  only:
+    - branches
   image: gradle:jdk17
   script: |
     sh ./gradlew --stacktrace --info deploy \
@@ -47,12 +57,41 @@ build_app:
     paths:
       - build/*.car
 
+build_app_prod:
+  stage: build_prod
+  only:
+    - tags
+  image: gradle:jdk17
+  script: |
+    if [ "$C8O_SERVER_PROD" = '$C8O_SERVER_PROD' ]; then
+      C8O_SERVER_PROD=$C8O_SERVER
+    fi
+    if [ "$C8O_USER_PROD" = '$C8O_USER_PROD' ]; then
+      C8O_USER_PROD=$C8O_USER
+    fi
+    if [ "$C8O_PASSWORD_PROD" = '$C8O_PASSWORD_PROD' ]; then
+      C8O_PASSWORD_PROD=$C8O_PASSWORD
+    fi
+    sh ./gradlew --stacktrace --info deploy \
+    -Pconvertigo.load.mobileApplicationEndpoint=${C8O_SERVER_PROD} \
+    -Pconvertigo.deploy.server=${C8O_SERVER_PROD} \
+    -Pconvertigo.deploy.user=${C8O_USER_PROD} \
+    -Pconvertigo.deploy.password=${C8O_PASSWORD_PROD}
+  artifacts:
+    paths:
+      - build/*.car
+
 release:
   stage: release
   only:
     - tags
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   needs:
-    - build_app
+    - job: build_app_prod
+      artifacts: true
+  artifacts:
+    paths:
+      - build/*.car
   script:
-    - release-cli create --tag-name "$CI_COMMIT_TAG" --description "Release $CI_COMMIT_TAG" --assets-link "{\"name\":\"Download CAR File\", \"url\":\"${CI_PROJECT_URL}/-/jobs/${CI_JOB_ID}/artifacts/raw/build/*.car\"}"
+    - CAR_FILE=$(ls build/*.car)
+    - release-cli create --tag-name "$CI_COMMIT_TAG" --description "Release $CI_COMMIT_TAG" --assets-link "{\"name\":\"Download CAR File\", \"url\":\"${CI_PROJECT_URL}/-/jobs/${CI_JOB_ID}/artifacts/raw/$CAR_FILE\"}"
