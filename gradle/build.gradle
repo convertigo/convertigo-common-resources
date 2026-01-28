@@ -237,4 +237,4 @@ if (!tasks.findByName('wrapper')) {
 		description 'Generates Gradle wrapper files.'
 	}
 }
-wrapper.gradleVersion = '9.2.1'
+wrapper.gradleVersion = '9.3.0'
