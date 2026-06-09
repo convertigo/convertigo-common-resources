@@ -1,0 +1,5 @@
+{
+  "files": [
+    {"from": "httpignore/.httpignore", "to": ".httpignore", "backup": true}
+  ]
+}
