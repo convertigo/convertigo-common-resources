@@ -2,7 +2,7 @@ buildscript {
 	repositories {
 		mavenLocal()
 		maven {
-			url "https://m2.convertigo.com"
+			url = "https://m2.convertigo.com"
 		}
 		mavenCentral()
 	}
