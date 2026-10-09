@@ -1,0 +1,31 @@
+name: Validate common resources
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Validate manifests and referenced files
+        run: python3 scripts/validate.py
+
+      - name: Validate CI YAML syntax
+        run: ruby -e 'require "yaml"; ARGV.each { |path| YAML.parse_file(path); puts path }' circleci/config.yml github-actions/build-and-release.yml gitlab/gitlab-ci.yml
+
+      - name: Load the Gradle template
+        working-directory: gradle
+        run: sh ./gradlew help --no-daemon --warning-mode all

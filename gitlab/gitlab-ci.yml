@@ -7,7 +7,7 @@
 #
 # C8O_SERVER: Convertigo server endpoint, where the built mobile application will connect
 #             and the backend project will be deployed, like https://<myhost>/convertigo
-# C8O_USER: Convertigo server admin or a user with role PROJECTS_CONFIG, used for the deploiment
+# C8O_USER: Convertigo server admin or a user with role PROJECTS_CONFIG, used for the deployment
 # C8O_PASSWORD: Convertigo server password for the C8O_USER
 #
 # C8O_SERVER_PROD: override C8O_SERVER for tags
@@ -17,12 +17,6 @@
 # Discover all tasks and -Pconvertigo options in your project build.gradle file.
 
 variables:
-  C8O_SERVER: $C8O_SERVER
-  C8O_USER: $C8O_USER
-  C8O_PASSWORD: $C8O_PASSWORD
-  C8O_SERVER_PROD: $C8O_SERVER_PROD
-  C8O_USER_PROD: $C8O_USER_PROD
-  C8O_PASSWORD_PROD: $C8O_PASSWORD_PROD
   GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
 
 stages:
@@ -40,7 +34,6 @@ cache:
     - .gradle/wrapper/
     - _private/ionic/node_modules/
     - _private/ionic/.angular/
-    - /home/gitlab-runner/convertigo/nodes/
 
 build_app:
   stage: build
@@ -49,10 +42,10 @@ build_app:
   image: gradle:jdk17
   script: |
     sh ./gradlew --stacktrace --info deploy \
-    -Pconvertigo.load.mobileApplicationEndpoint=$C8O_SERVER \
-    -Pconvertigo.deploy.server=$C8O_SERVER \
-    -Pconvertigo.deploy.user=$C8O_USER \
-    -Pconvertigo.deploy.password=$C8O_PASSWORD
+    "-Pconvertigo.load.mobileApplicationEndpoint=$C8O_SERVER" \
+    "-Pconvertigo.deploy.server=$C8O_SERVER" \
+    "-Pconvertigo.deploy.user=$C8O_USER" \
+    "-Pconvertigo.deploy.password=$C8O_PASSWORD"
   artifacts:
     paths:
       - build/*.car
@@ -63,20 +56,14 @@ build_app_prod:
     - tags
   image: gradle:jdk17
   script: |
-    if [ "$C8O_SERVER_PROD" = '$C8O_SERVER_PROD' ]; then
-      C8O_SERVER_PROD=$C8O_SERVER
-    fi
-    if [ "$C8O_USER_PROD" = '$C8O_USER_PROD' ]; then
-      C8O_USER_PROD=$C8O_USER
-    fi
-    if [ "$C8O_PASSWORD_PROD" = '$C8O_PASSWORD_PROD' ]; then
-      C8O_PASSWORD_PROD=$C8O_PASSWORD
-    fi
+    C8O_SERVER_PROD="${C8O_SERVER_PROD:-$C8O_SERVER}"
+    C8O_USER_PROD="${C8O_USER_PROD:-$C8O_USER}"
+    C8O_PASSWORD_PROD="${C8O_PASSWORD_PROD:-$C8O_PASSWORD}"
     sh ./gradlew --stacktrace --info deploy \
-    -Pconvertigo.load.mobileApplicationEndpoint=${C8O_SERVER_PROD} \
-    -Pconvertigo.deploy.server=${C8O_SERVER_PROD} \
-    -Pconvertigo.deploy.user=${C8O_USER_PROD} \
-    -Pconvertigo.deploy.password=${C8O_PASSWORD_PROD}
+    "-Pconvertigo.load.mobileApplicationEndpoint=${C8O_SERVER_PROD}" \
+    "-Pconvertigo.deploy.server=${C8O_SERVER_PROD}" \
+    "-Pconvertigo.deploy.user=${C8O_USER_PROD}" \
+    "-Pconvertigo.deploy.password=${C8O_PASSWORD_PROD}"
   artifacts:
     paths:
       - build/*.car
@@ -85,7 +72,9 @@ release:
   stage: release
   only:
     - tags
-  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  image: registry.gitlab.com/gitlab-org/cli:latest
+  variables:
+    GLAB_ENABLE_CI_AUTOLOGIN: "true"
   needs:
     - job: build_app_prod
       artifacts: true
@@ -93,5 +82,6 @@ release:
     paths:
       - build/*.car
   script:
-    - CAR_FILE=$(ls build/*.car)
-    - release-cli create --tag-name "$CI_COMMIT_TAG" --description "Release $CI_COMMIT_TAG" --assets-link "{\"name\":\"Download CAR File\", \"url\":\"${CI_PROJECT_URL}/-/jobs/${CI_JOB_ID}/artifacts/raw/$CAR_FILE\"}"
+    - CAR_FILE=$(find build -maxdepth 1 -type f -name '*.car' -print -quit)
+    - test -n "$CAR_FILE"
+    - glab release create "$CI_COMMIT_TAG" "$CAR_FILE#Download CAR File" --name "Release $CI_COMMIT_TAG" --notes "Release $CI_COMMIT_TAG" --ref "$CI_COMMIT_SHA"

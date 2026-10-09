@@ -39,19 +39,13 @@ coordinating procedure.
 
 ## Local validation
 
-Validate the JSON manifests with:
+Run the repository validation with:
 
 ```sh
-python3 - <<'PY'
-import json
-from pathlib import Path
-
-for path in Path('.').glob('*.json'):
-    json.loads(path.read_text())
-    print(path)
-PY
+python3 scripts/validate.py
+cd gradle && ./gradlew help --no-daemon --warning-mode all
 ```
 
-Then inspect each `imports` value and confirm that its source file exists in
-the repository. Build a representative project with the Gradle template when
-the wrapper, plugin, Java version, or Gradle script changes.
+The GitHub validation workflow runs these checks and parses the three CI YAML
+templates. Build a representative project with the Gradle template when the
+wrapper, plugin, Java version, or Gradle script changes.

@@ -7,7 +7,7 @@
 #
 # C8O_SERVER: Convertigo server endpoint, where the built mobile application will connect
 #             and the backend project will be deployed, like https://<myhost>/convertigo
-# C8O_USER: Convertigo server admin or a user with role PROJECTS_CONFIG, used for the deploiment
+# C8O_USER: Convertigo server admin or a user with role PROJECTS_CONFIG, used for the deployment
 # C8O_PASSWORD: Convertigo server password for the C8O_USER
 #
 # C8O_SERVER_PROD: override C8O_SERVER for tags
@@ -30,18 +30,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ssh-key: ${{ secrets.SSH_KEY }}
 
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           java-version: '17'
           distribution: 'temurin'
 
       - name: Cache Gradle Dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
             path: |
                ~/.gradle/caches
@@ -49,23 +49,23 @@ jobs:
             key: ${{ runner.os }}-gradle-caches-v1-${{ hashFiles('**/*.gradle', '**/gradle/wrapper/gradle-wrapper.properties') }}
             restore-keys: ${{ runner.os }}-gradle-caches-v1-
 
-      - name: Cache Node Modules
-        uses: actions/cache@v4
-        with:
-            path: |
-              ${{ github.workspace }}/_private/ionic/node_modules
-              ${{ github.workspace }}/_private/ionic/.angular
-              /home/runner/convertigo/nodes
-            key: ${{ runner.os }}-build-node-${{ hashFiles('**/package.json', '**/_private/ionic/version.json') }}
-            restore-keys: ${{ runner.os }}-build-node-
-
       - name: Convertigo generate application code
         env:
           C8O_SERVER: ${{ github.ref_type == 'tag' && secrets.C8O_SERVER_PROD || secrets.C8O_SERVER }}
         run: |
           echo "Generate Mobile Builder App" && \
           sh gradlew --stacktrace --info generateMobileBuilder export -x compileMobileBuilder \
-            -Pconvertigo.load.mobileApplicationEndpoint=$C8O_SERVER
+            "-Pconvertigo.load.mobileApplicationEndpoint=$C8O_SERVER"
+
+      - name: Cache Node Modules
+        uses: actions/cache@v6
+        with:
+            path: |
+              ${{ github.workspace }}/_private/ionic/node_modules
+              ${{ github.workspace }}/_private/ionic/.angular
+              /home/runner/convertigo/nodes
+            key: ${{ runner.os }}-build-node-${{ hashFiles('**/_private/ionic/package.json', '**/_private/ionic/package-lock.json', '**/_private/ionic/version.json') }}
+            restore-keys: ${{ runner.os }}-build-node-
 
       - name: Build and deploy based on branch or tag
         env:
@@ -79,28 +79,31 @@ jobs:
             echo "Deploying to development server $C8O_SERVER";
           fi
           sh gradlew --stacktrace --info car deploy -x generateMobileBuilder \
-            -Pconvertigo.deploy.server=$C8O_SERVER \
-            -Pconvertigo.deploy.user=$C8O_USER \
-            -Pconvertigo.deploy.password=$C8O_PASSWORD
+            "-Pconvertigo.deploy.server=$C8O_SERVER" \
+            "-Pconvertigo.deploy.user=$C8O_USER" \
+            "-Pconvertigo.deploy.password=$C8O_PASSWORD"
 
       - name: Save application project
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: project
           path: build/*.car
+          if-no-files-found: error
 
   release:
     if: github.ref_type == 'tag'
     needs: build_and_deploy
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Download CAR File
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: project
 
       - name: Deploy to GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: '*.car'
           tag_name: ${{ github.ref_name }}

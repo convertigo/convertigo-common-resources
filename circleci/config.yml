@@ -7,7 +7,7 @@
 #
 # C8O_SERVER: Convertigo server endpoint, where the built mobile application will connect
 #             and the backend project will be deployed, like https://<myhost>/convertigo
-# C8O_USER: Convertigo server admin or a user with role PROJECTS_CONFIG, used for the deploiment
+# C8O_USER: Convertigo server admin or a user with role PROJECTS_CONFIG, used for the deployment
 # C8O_PASSWORD: Convertigo server password for the C8O_USER
 #
 # Discover all tasks and -Pconvertigo options in your project build.gradle file.
@@ -31,14 +31,15 @@ jobs:
     # Download and cache dependencies
     - restore_cache:
         keys:
-          - v1-dependencies-{{ checksum "build.gradle" }}
+          - v2-dependencies-{{ checksum "build.gradle" }}-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
           # fallback to using the latest cache if no exact match is found
-          - v1-dependencies-
-    - run: gradle dependencies
+          - v2-dependencies-
+    - run: sh ./gradlew --no-daemon dependencies
     - save_cache:
         paths:
-          - ~/.gradle
-        key: v1-dependencies-{{ checksum "build.gradle" }}
+          - ~/.gradle/caches
+          - ~/.gradle/wrapper
+        key: v2-dependencies-{{ checksum "build.gradle" }}-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
     - restore_cache:
         keys:
           - v1-convertigo-{{ checksum "build.gradle" }}
@@ -47,13 +48,14 @@ jobs:
     - run:
         name: Convertigo Mobile Application build and deploy
         command: |
-          echo "Build the Mobile Application and deploy to $C8O_SERVER" && \
+          echo "Build the Mobile Application and deploy to $C8O_SERVER"
+          # Release mode needs too many resources for the default CircleCI executor.
           sh gradlew --no-daemon --stacktrace --info deploy \
-            -Pconvertigo.deploy.server=$C8O_SERVER \
-            -Pconvertigo.deploy.user=$C8O_USER \
-            -Pconvertigo.deploy.password=$C8O_PASSWORD \
-            -Pconvertigo.compileMobileBuilder.mode=debug \ # release mode needs to much resources for CircleCI, gradle or template tweak needed
-            -Pconvertigo.load.mobileApplicationEndpoint=$C8O_SERVER 
+            "-Pconvertigo.deploy.server=$C8O_SERVER" \
+            "-Pconvertigo.deploy.user=$C8O_USER" \
+            "-Pconvertigo.deploy.password=$C8O_PASSWORD" \
+            -Pconvertigo.compileMobileBuilder.mode=debug \
+            "-Pconvertigo.load.mobileApplicationEndpoint=$C8O_SERVER"
     - save_cache:
         paths:
           - ~/convertigo
