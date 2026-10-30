@@ -25,3 +25,7 @@ gradle/
 gradle/**
 build.gradle
 settings.gradle
+
+# Files saved by Download HTTP transactions in their default folder: serve them
+# through a sequence (attachment), remove this rule if a project links them directly.
+/_data/download/
